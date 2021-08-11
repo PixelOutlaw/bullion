@@ -18,330 +18,283 @@
  */
 package info.faceland.mint;
 
-import com.tealcube.minecraft.bukkit.TextUtils;
-import com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils;
+import static com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils.sendMessage;
+
+import com.tealcube.minecraft.bukkit.shade.acf.BaseCommand;
+import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandAlias;
+import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandCompletion;
+import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandPermission;
+import com.tealcube.minecraft.bukkit.shade.acf.annotation.Subcommand;
+import com.tealcube.minecraft.bukkit.shade.acf.bukkit.contexts.OnlinePlayer;
 import info.faceland.mint.util.MintUtil;
-import io.pixeloutlaw.minecraft.spigot.hilt.ItemStackExtensionsKt;
+import io.pixeloutlaw.minecraft.spigot.garbage.StringExtensionsKt;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.nunnerycode.mint.MintPlugin;
-import se.ranzdo.bukkit.methodcommand.Arg;
-import se.ranzdo.bukkit.methodcommand.Command;
 
-import java.util.List;
+@CommandAlias("mint|bullion")
+public class MintCommand extends BaseCommand {
 
-public class MintCommand {
-
-  private MintPlugin plugin;
+  private final MintPlugin plugin;
 
   public MintCommand(MintPlugin plugin) {
     this.plugin = plugin;
   }
 
-  @Command(identifier = "mint reload", permissions = "mint.reload")
+  @Subcommand("reload")
+  @CommandPermission("mint.reward")
   public void reload(CommandSender commandSender) {
     plugin.disable();
     plugin.enable();
-    commandSender.sendMessage(TextUtils.color("&aMINT RELOADED!"));
+    commandSender.sendMessage(StringExtensionsKt.chatColorize("&aMINT RELOADED!"));
   }
 
-  @Command(identifier = "bank create", permissions = "mint.bank.create")
-  public void bankCreateSubcommand(CommandSender commandSender,
-      @Arg(name = "player") Player target) {
-    EconomyResponse response = plugin.getEconomy().bankBalance(target.getUniqueId().toString());
-    if (response.transactionSuccess()) {
-      commandSender.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-create-failure2", "")));
-      return;
-    }
-    response = plugin.getEconomy()
-        .createBank(target.getUniqueId().toString(), target.getUniqueId().toString());
-    if (response.transactionSuccess()) {
-      commandSender.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.bank-create-success", "")),
-          new String[][]{{"%player%", target.getDisplayName()}}));
-      target.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-create-receiver", "")));
-      return;
-    }
-    commandSender.sendMessage(
-        TextUtils.color(plugin.getSettings().getString("language.bank-create-failure", "")));
-  }
+  @Subcommand("bank")
+  public class BankCommand extends BaseCommand {
 
-  @Command(identifier = "bank balance", permissions = "mint.bank.balance")
-  public void bankBalance(Player player) {
-    EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
-    if (!response.transactionSuccess()) {
-      player.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-balance-failure", "")));
-      return;
-    }
-    player.sendMessage(TextUtils.args(
-        TextUtils.color(plugin.getSettings().getString("language.bank-balance", "")),
-        new String[][]{
-            {"%currency%",
-                plugin.getEconomy().format(response.balance)}}));
-  }
-
-  @Command(identifier = "bank deposit", permissions = "mint.bank.deposit")
-  public void bankDeposit(Player player, @Arg(name = "amount") double amount) {
-    EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
-    if (!response.transactionSuccess()) {
-      response = plugin.getEconomy()
-          .createBank(player.getUniqueId().toString(), player.getUniqueId().toString());
+    @Subcommand("create")
+    @CommandPermission("mint.bank.create")
+    public void bankCreateSubcommand(CommandSender commandSender, OnlinePlayer player) {
+      Player target = player.getPlayer();
+      EconomyResponse response = plugin.getEconomy().bankBalance(target.getUniqueId().toString());
       if (response.transactionSuccess()) {
-        player.sendMessage(TextUtils.args(
-            TextUtils.color(plugin.getSettings().getString("language.bank-create-success", "")),
-            new String[][]{{"%player%", player.getDisplayName()}}));
+        commandSender.sendMessage(
+            StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-create-failure2", "")));
         return;
       }
+      response = plugin.getEconomy()
+          .createBank(target.getUniqueId().toString(), target.getUniqueId().toString());
+      if (response.transactionSuccess()) {
+        commandSender.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+            "language.bank-create-success", "").replaceAll("%player%", target.getDisplayName())));
+        target.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+            "language.bank-create-receiver", "")));
+        return;
+      }
+      commandSender.sendMessage(
+          StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-create-failure", "")));
     }
-    if (amount < 0) {
-      if (plugin.getEconomy()
-          .bankDeposit(player.getUniqueId().toString(), plugin.getEconomy().getBalance(
-              player.getUniqueId().toString())).transactionSuccess()) {
+
+    @Subcommand("balance")
+    @CommandPermission("mint.bank.balance")
+    public void bankBalance(OnlinePlayer player) {
+      Player target = player.getPlayer();
+      EconomyResponse response = plugin.getEconomy().bankBalance(target.getUniqueId().toString());
+      if (!response.transactionSuccess()) {
+        target.sendMessage(
+            StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-balance-failure", "")));
+        return;
+      }
+      target.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+          "language.bank-balance", "").replaceAll("%currency%", plugin.getEconomy().format(response.balance))));
+    }
+
+    @Subcommand("deposit")
+    @CommandCompletion("@range:1-100")
+    @CommandPermission("mint.bank.deposit")
+    public void bankDeposit(OnlinePlayer p, double amount) {
+      Player player = p.getPlayer();
+      EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
+      if (!response.transactionSuccess()) {
+        response = plugin.getEconomy()
+            .createBank(player.getUniqueId().toString(), player.getUniqueId().toString());
+        if (response.transactionSuccess()) {
+          sendMessage(player, plugin.getSettings().getString(
+              "language.bank-create-success", "").replaceAll("%player%", player.getName()));
+          return;
+        }
+      }
+      if (amount < 0) {
         if (plugin.getEconomy()
-            .withdrawPlayer(player.getUniqueId().toString(), plugin.getEconomy().getBalance(
+            .bankDeposit(player.getUniqueId().toString(), plugin.getEconomy().getBalance(
                 player.getUniqueId().toString())).transactionSuccess()) {
-          player.sendMessage(TextUtils.args(
-              TextUtils.color(plugin.getSettings().getString("language.bank-deposit-success", "")),
-              new String[][]{{"%currency%", "EVERYTHING"}}));
-          player.sendMessage(TextUtils.args(
-              TextUtils.color(plugin.getSettings().getString("language.bank-balance", "")),
-              new String[][]{
-                  {"%currency%",
-                      plugin.getEconomy().format(plugin.getEconomy()
-                          .bankBalance(player.getUniqueId().toString()).balance)}}));
-          return;
+          if (plugin.getEconomy()
+              .withdrawPlayer(player.getUniqueId().toString(), plugin.getEconomy().getBalance(
+                  player.getUniqueId().toString())).transactionSuccess()) {
+            sendMessage(player, plugin.getSettings().getString(
+                "language.bank-deposit-success", "").replaceAll("%currency%", "EVERYTHING"));
+            sendMessage(player, plugin.getSettings().getString(
+                "language.bank-balance", "").replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                .bankBalance(player.getUniqueId().toString()).balance)));
+            return;
+          }
         }
-      }
-      player.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-deposit-failure", "")));
-      return;
-    }
-    if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
-      player.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-deposit-failure", "")));
-      return;
-    }
-    if (plugin.getEconomy().bankDeposit(player.getUniqueId().toString(), amount)
-        .transactionSuccess()) {
-      if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
-          .transactionSuccess()) {
-        player.sendMessage(TextUtils.args(
-            TextUtils.color(plugin.getSettings().getString("language.bank-deposit-success", "")),
-            new String[][]{{"%currency%", plugin.getEconomy().format(amount)}}));
-        player.sendMessage(TextUtils.args(
-            TextUtils.color(plugin.getSettings().getString("language.bank-balance", "")),
-            new String[][]{
-                {"%currency%",
-                    plugin.getEconomy().format(plugin.getEconomy()
-                        .bankBalance(player.getUniqueId().toString()).balance)}}));
+        sendMessage(player, plugin.getSettings().getString("language.bank-deposit-failure", ""));
         return;
       }
-    }
-    player.sendMessage(
-        TextUtils.color(plugin.getSettings().getString("language.bank-deposit-failure", "")));
-  }
-
-  @Command(identifier = "bank withdraw", permissions = "mint.bank.withdraw")
-  public void bankWithdraw(Player player, @Arg(name = "amount") double amount) {
-    EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
-    if (!response.transactionSuccess()) {
-      player.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-no-account", "")));
-      return;
-    }
-    if (amount < 0) {
-      if (plugin.getEconomy()
-          .depositPlayer(player.getUniqueId().toString(), plugin.getEconomy().bankBalance(
-              player.getUniqueId().toString()).balance).transactionSuccess()) {
-        if (plugin.getEconomy()
-            .bankWithdraw(player.getUniqueId().toString(), plugin.getEconomy().bankBalance(
-                player.getUniqueId().toString()).balance).transactionSuccess()) {
-          player.sendMessage(TextUtils.args(
-              TextUtils.color(plugin.getSettings().getString("language.bank-withdraw-success", "")),
-              new String[][]{{"%currency%", "EVERYTHING"}}));
-          player.sendMessage(TextUtils.args(
-              TextUtils.color(plugin.getSettings().getString("language.bank-balance", "")),
-              new String[][]{
-                  {"%currency%",
-                      plugin.getEconomy().format(plugin.getEconomy()
-                          .bankBalance(player.getUniqueId().toString()).balance)}}));
+      if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-deposit-failure", ""));
+        return;
+      }
+      if (plugin.getEconomy().bankDeposit(player.getUniqueId().toString(), amount)
+          .transactionSuccess()) {
+        if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
+            .transactionSuccess()) {
+          sendMessage(player, plugin.getSettings().getString(
+              "language.bank-deposit-success", "").replaceAll("%currency%", plugin.getEconomy().format(amount)));
+          sendMessage(player, plugin.getSettings().getString("language.bank-balance", "")
+              .replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                  .bankBalance(player.getUniqueId().toString()).balance)));
           return;
         }
       }
-      player.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-withdraw-failure", "")));
-      return;
+      sendMessage(player, plugin.getSettings().getString("language.bank-deposit-failure", ""));
     }
-    if (!plugin.getEconomy().bankHas(player.getUniqueId().toString(), amount)
-        .transactionSuccess()) {
-      player.sendMessage(
-          TextUtils.color(plugin.getSettings().getString("language.bank-withdraw-failure", "")));
-      return;
+
+    @Subcommand("withdraw")
+    @CommandCompletion("@range:1-100")
+    @CommandPermission("mint.bank.withdraw")
+    public void bankWithdraw(OnlinePlayer p, double amount) {
+      Player player = p.getPlayer();
+      EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
+      if (!response.transactionSuccess()) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-no-account", ""));
+        return;
+      }
+      if (amount < 0) {
+        if (plugin.getEconomy()
+            .depositPlayer(player.getUniqueId().toString(), plugin.getEconomy().bankBalance(
+                player.getUniqueId().toString()).balance).transactionSuccess()) {
+          if (plugin.getEconomy()
+              .bankWithdraw(player.getUniqueId().toString(), plugin.getEconomy().bankBalance(
+                  player.getUniqueId().toString()).balance).transactionSuccess()) {
+            sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-success", "")
+                .replaceAll("%currency%", "EVERYTHING"));
+            sendMessage(player, plugin.getSettings().getString("language.bank-balance", "")
+                .replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                    .bankBalance(player.getUniqueId().toString()).balance)));
+            return;
+          }
+        }
+        sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
+        return;
+      }
+      if (!plugin.getEconomy().bankHas(player.getUniqueId().toString(), amount)
+          .transactionSuccess()) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
+        return;
+      }
+      if (plugin.getEconomy().bankWithdraw(player.getUniqueId().toString(), amount)
+          .transactionSuccess() && plugin
+          .getEconomy().depositPlayer(player.getUniqueId().toString(), amount).transactionSuccess()) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-success", "")
+            .replaceAll("%currency%", plugin.getEconomy().format(amount)));
+        sendMessage(player, plugin.getSettings().getString("language.bank-balance", "")
+            .replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                .bankBalance(player.getUniqueId().toString()).balance)));
+        return;
+      }
+      sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
     }
-    if (plugin.getEconomy().bankWithdraw(player.getUniqueId().toString(), amount)
-        .transactionSuccess() && plugin
-        .getEconomy().depositPlayer(player.getUniqueId().toString(), amount).transactionSuccess()) {
-      player.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.bank-withdraw-success", "")),
-          new String[][]{{"%currency%", plugin.getEconomy().format(amount)}}));
-      player.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.bank-balance", "")),
-          new String[][]{
-              {"%currency%", plugin.getEconomy().format(plugin.getEconomy()
-                  .bankBalance(player.getUniqueId().toString()).balance)}}));
-      return;
-    }
-    player.sendMessage(
-        TextUtils.color(plugin.getSettings().getString("language.bank-withdraw-failure", "")));
   }
 
-  @Command(identifier = "pay", permissions = "mint.pay")
-  public void payCommand(Player player, @Arg(name = "target") Player target,
-      @Arg(name = "amount") double amount) {
+  @Subcommand("pay")
+  @CommandCompletion("@range:1-100")
+  @CommandPermission("mint.pay")
+  public void payCommand(OnlinePlayer p, OnlinePlayer t, double amount) {
+    Player player = p.getPlayer();
+    Player target = t.getPlayer();
     if (amount < 1D) {
-      MessageUtils
-          .sendMessage(player, plugin.getSettings().getString("language.pay-negative-money"));
+      sendMessage(player, plugin.getSettings().getString("language.pay-negative-money"));
       return;
     }
     if (!player.getLocation().getWorld().equals(target.getLocation().getWorld()) ||
         player.getLocation().distanceSquared(target.getLocation()) > plugin.getSettings()
             .getDouble("config.pay-distance-max", 25)) {
-      player.sendMessage(TextUtils.color(plugin.getSettings().getString("language.pay-range", "")));
+      sendMessage(player, plugin.getSettings().getString("language.pay-range", ""));
       return;
     }
     if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
-      player
-          .sendMessage(TextUtils.color(plugin.getSettings().getString("language.pay-failure", "")));
+      sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
       return;
     }
     if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
         .transactionSuccess() &&
         plugin.getEconomy().depositPlayer(target.getUniqueId().toString(), amount)
             .transactionSuccess()) {
-      player.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.pay-success", "")),
-          new String[][]{{"%player%", target.getDisplayName()},
-              {"%currency%", plugin.getEconomy().format(Math.abs(amount))
-              }}));
-      target.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.gain-money", "")),
-          new String[][]{{"%amount%", String.valueOf(amount)},
-              {"%money%", amount == 1D ? plugin.getEconomy()
-                  .currencyNameSingular()
-                  : plugin.getEconomy()
-                      .currencyNamePlural()},
-              {"%currency%", plugin.getEconomy().format(amount)}}));
+      sendMessage(player, plugin.getSettings().getString("language.pay-success", "")
+          .replaceAll("%player%", target.getDisplayName())
+          .replaceAll("%currency%", plugin.getEconomy().format(Math.abs(amount))));
+      sendMessage(player, plugin.getSettings().getString("language.gain-money", "")
+          .replaceAll("%amount%", String.valueOf(amount))
+          .replaceAll("%money%", amount == 1D ? plugin.getEconomy().currencyNameSingular()
+              : plugin.getEconomy().currencyNamePlural())
+          .replaceAll("%currency%", plugin.getEconomy().format(amount)));
       return;
     }
-    player.sendMessage(TextUtils.color(plugin.getSettings().getString("language.pay-failure", "")));
+    sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
   }
 
-  @Command(identifier = "epay", permissions = "mint.epay")
-  public void ePayCommand(Player player, @Arg(name = "target") Player target,
-      @Arg(name = "amount") double amount) {
+  @Subcommand("epay")
+  @CommandCompletion("@range:1-100")
+  @CommandPermission("mint.epay")
+  public void ePayCommand(OnlinePlayer p, OnlinePlayer t, double amount) {
+    Player player = p.getPlayer();
+    Player target = t.getPlayer();
     if (amount < 1D) {
-      MessageUtils
-          .sendMessage(player, plugin.getSettings().getString("language.pay-negative-money"));
+      sendMessage(player, plugin.getSettings().getString("language.pay-negative-money"));
       return;
     }
     if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
-      player
-          .sendMessage(TextUtils.color(plugin.getSettings().getString("language.pay-failure", "")));
+      sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
       return;
     }
     if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
         .transactionSuccess() &&
         plugin.getEconomy().depositPlayer(target.getUniqueId().toString(), amount)
             .transactionSuccess()) {
-      player.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.pay-success", "")),
-          new String[][]{{"%player%", target.getDisplayName()},
-              {"%currency%", plugin.getEconomy().format(Math.abs(amount))}}));
+      sendMessage(player, plugin.getSettings().getString("language.pay-success", "")
+          .replaceAll("%player%", target.getDisplayName())
+          .replaceAll("%currency%", plugin.getEconomy().format(Math.abs(amount))));
       return;
     }
-    player.sendMessage(TextUtils.color(plugin.getSettings().getString("language.pay-failure", "")));
+    sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
   }
 
-  @Command(identifier = "mint add", permissions = "mint.add", onlyPlayers = false)
-  public void addSubcommand(CommandSender sender, @Arg(name = "target") Player target,
-      @Arg(name = "amount") double amount) {
+  @Subcommand("sub|give")
+  @CommandCompletion("@players @range:1-100")
+  @CommandPermission("mint.add")
+  public void addSubcommand(CommandSender sender, OnlinePlayer p, double amount) {
+    Player target = p.getPlayer();
     if (plugin.getEconomy().depositPlayer(target.getUniqueId().toString(), amount)
         .transactionSuccess()) {
-      sender.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.add-money", "")),
-          new String[][]{{"%player%", target.getDisplayName()}}));
+      sendMessage(sender, plugin.getSettings().getString("language.add-money", "")
+          .replaceAll("%player%", target.getDisplayName()));
     }
   }
 
-  @Command(identifier = "mint sub", permissions = "mint.sub", onlyPlayers = false)
-  public void subSubcommand(CommandSender sender, @Arg(name = "target") Player target,
-      @Arg(name = "amount") double amount) {
+  @Subcommand("sub")
+  @CommandCompletion("@players @range:1-100")
+  @CommandPermission("mint.sub")
+  public void subSubcommand(CommandSender sender, OnlinePlayer p, double amount) {
+    Player target = p.getPlayer();
     if (plugin.getEconomy().withdrawPlayer(target.getUniqueId().toString(), amount)
         .transactionSuccess()) {
-      sender.sendMessage(TextUtils.args(
-          TextUtils.color(plugin.getSettings().getString("language.sub-money", "")),
-          new String[][]{{"%player%", target.getDisplayName()}}));
+      sendMessage(sender, plugin.getSettings().getString("language.sub-money", "")
+          .replaceAll("%player%", target.getDisplayName()));
     }
   }
 
-  @Command(identifier = "mint spawn", permissions = "mint.spawn", onlyPlayers = false)
-  public void spawnSubcommand(CommandSender sender, @Arg(name = "amount") int amount,
-      @Arg(name = "world") String worldName, @Arg(name = "x") int x,
-      @Arg(name = "y") int y, @Arg(name = "z") int z) {
+  @Subcommand("spawn")
+  @CommandCompletion("@range:1-100 world x y z")
+  @CommandPermission("mint.spawn")
+  public void spawnSubcommand(CommandSender sender, int amount, String worldName, int x, int y, int z) {
     World world = Bukkit.getWorld(worldName);
     MintUtil.spawnCashDrop(new Location(world, x, y, z), Math.round(Math.abs(amount)), 0);
-    sender.sendMessage(TextUtils.args(
-        TextUtils.color(plugin.getSettings().getString("language.spawn-success", "")),
-        new String[][]{{"%currency%", plugin.getEconomy().format(Math.abs(amount))
-        }}));
+    sendMessage(sender, plugin.getSettings().getString("language.spawn-success", "")
+        .replaceAll("%currency%", plugin.getEconomy().format(Math.abs(amount))));
   }
 
-  @Command(identifier = "mint balance", permissions = "mint.balance", onlyPlayers = false)
-  public void balanceSubcommand(CommandSender sender, @Arg(name = "target") Player target) {
-    MessageUtils.sendMessage(sender, "&f%player% &ahas &f%currency%",
+  @Subcommand("balance")
+  @CommandCompletion("@players @range:1-100")
+  @CommandPermission("mint.spawn")
+  public void balanceSubcommand(CommandSender sender, OnlinePlayer p) {
+    Player target = p.getPlayer();
+    sendMessage(sender, "&f%player% &ahas &f%currency%",
         new String[][]{{"%player%", target.getDisplayName()},
             {"%currency%", plugin.getEconomy().format(plugin.getEconomy().getBalance(target))}});
-  }
-
-  @Command(identifier = "pawn", permissions = "mint.pawn", onlyPlayers = false)
-  public void pawnCommand(CommandSender sender,
-      @Arg(name = "target", def = "?sender") Player target) {
-    Inventory inventory = Bukkit.createInventory(null, InventoryType.CHEST,
-        TextUtils.color(plugin.getSettings().getString("language.pawn-shop-name")));
-    target.openInventory(inventory);
-  }
-
-  @Command(identifier = "mint price", permissions = "mint.price", onlyPlayers = true)
-  public void priceCommand(Player p) {
-    ItemStack item = p.getItemInHand();
-    if (item.getType() == Material.AIR) {
-      MessageUtils.sendMessage(p, "<yellow>You must be holding an item to check its price!");
-      return;
-    }
-    List<String> lore = ItemStackExtensionsKt.getLore(item);
-    double amount = plugin.getSettings()
-        .getDouble("prices.materials." + item.getType().name(), 0D);
-    if (!lore.isEmpty()) {
-      amount += plugin.getSettings().getDouble("prices.options.lore.base-price", 3D);
-      amount +=
-          plugin.getSettings().getDouble("prices.options.lore" + ".per-line", 1D) * lore.size();
-    }
-    String strippedName = ChatColor.stripColor(ItemStackExtensionsKt.getDisplayName(item));
-    if (strippedName.startsWith("Socket Gem")) {
-      amount = plugin.getSettings().getDouble("prices.special.gems");
-    } else if (plugin.getSettings().isSet("prices.names." + strippedName)) {
-      amount = plugin.getSettings().getDouble("prices.names." + strippedName, 0D);
-    }
-    MessageUtils.sendMessage(p,
-        "<green>The item in your hand sells for <white>" + amount + " Bits<green> each.");
   }
 
 }

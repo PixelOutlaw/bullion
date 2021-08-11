@@ -20,6 +20,7 @@ package org.nunnerycode.mint;
 
 import com.tealcube.minecraft.bukkit.bullion.PlayerDeathDropEvent;
 import com.tealcube.minecraft.bukkit.facecore.plugin.FacePlugin;
+import com.tealcube.minecraft.bukkit.shade.acf.PaperCommandManager;
 import info.faceland.mint.MintCommand;
 import info.faceland.mint.MintEconomy;
 import info.faceland.mint.listeners.DeathListener;
@@ -40,9 +41,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.nunnerycode.mint.accounts.BankAccount;
 import org.nunnerycode.mint.accounts.PlayerAccount;
 import org.nunnerycode.mint.storage.DataStorage;
-import org.nunnerycode.mint.storage.MySqlDataStorage;
 import org.nunnerycode.mint.storage.YamlDataStorage;
-import se.ranzdo.bukkit.methodcommand.CommandHandler;
 
 public class MintPlugin extends FacePlugin {
 
@@ -112,15 +111,7 @@ public class MintPlugin extends FacePlugin {
       return;
     }
 
-    if (settings.getBoolean("config.database.enabled")) {
-      dataStorage = new MySqlDataStorage(settings.getString("config.database.host"),
-          settings.getString("config.database.port"),
-          settings.getString("config.database.database"),
-          settings.getString("config.database.username"),
-          settings.getString("config.database.password"));
-    } else {
-      dataStorage = new YamlDataStorage(this);
-    }
+    dataStorage = new YamlDataStorage(this);
     dataStorage.initialize();
 
     for (PlayerAccount account : dataStorage.loadPlayerAccounts()) {
@@ -143,7 +134,7 @@ public class MintPlugin extends FacePlugin {
       }
     }, 20L, 20L * 30);
 
-    if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null){
+    if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
       new MintPlaceholders().register();
     }
 
@@ -155,7 +146,8 @@ public class MintPlugin extends FacePlugin {
     Bukkit.getPluginManager().registerEvents(itemSpawnListener, this);
     Bukkit.getPluginManager().registerEvents(deathListener, this);
 
-    new CommandHandler(this).registerCommands(new MintCommand(this));
+    PaperCommandManager commandManager = new PaperCommandManager(this);
+    commandManager.registerCommand(new MintCommand(this));
   }
 
   @Override
