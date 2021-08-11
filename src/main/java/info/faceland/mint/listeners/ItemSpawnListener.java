@@ -22,6 +22,7 @@ import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.math.NumberUtils
 import info.faceland.mint.util.MintUtil;
 import io.pixeloutlaw.minecraft.spigot.hilt.ItemStackExtensionsKt;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
@@ -34,6 +35,7 @@ import org.nunnerycode.mint.MintPlugin;
 public class ItemSpawnListener implements Listener {
 
   private final MintPlugin plugin;
+  private final Random random = new Random();
 
   public ItemSpawnListener(MintPlugin mintPlugin) {
     this.plugin = mintPlugin;
@@ -41,26 +43,44 @@ public class ItemSpawnListener implements Listener {
 
   @EventHandler(priority = EventPriority.LOWEST)
   public void onBitSpawn(ItemSpawnEvent event) {
+
     if (!MintUtil.isCashDrop(event.getEntity().getItemStack())) {
       return;
     }
+
     ItemStack nuggetStack = event.getEntity().getItemStack();
-    String s = ItemStackExtensionsKt.getLore(nuggetStack).get(0);
+    String s = nuggetStack.getLore().get(0);
     String stripped = ChatColor.stripColor(s);
+
     double amount = NumberUtils.toDouble(stripped);
     if (amount <= 0.00D) {
       event.setCancelled(true);
       return;
     }
-    int antiStackSerial = ThreadLocalRandom.current().nextInt(0, 999999);
 
     ItemStackExtensionsKt.setDisplayName(nuggetStack, MintUtil.CASH_STRING);
-    ItemStackExtensionsKt
-        .setLore(nuggetStack, Arrays.asList(Double.toString(amount), "S:" + antiStackSerial));
+
+    int amountId = (int) Math.floor(amount);
+    if (amountId < 2) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 1000000 + random.nextInt(999999));
+    } else if (amountId == 2) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 2000000 + random.nextInt(999999));
+    } else if (amountId == 3) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 3000000 + random.nextInt(999999));
+    } else if (amountId < 12) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 4000000 + random.nextInt(999999));
+    } else if (amountId < 80) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 5000000 + random.nextInt(999999));
+    } else if (amountId < 250) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 6000000 + random.nextInt(999999));
+    } else if (amountId < 999) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 7000000 + random.nextInt(999999));
+    } else {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 8000000 + random.nextInt(999999));
+    }
 
     event.getEntity().setItemStack(nuggetStack);
-    event.getEntity()
-        .setCustomName(ChatColor.YELLOW + plugin.getEconomy().format(Math.floor(amount)));
+    event.getEntity().setCustomName(ChatColor.YELLOW + plugin.getEconomy().format(Math.floor(amount)));
     event.getEntity().setCustomNameVisible(true);
   }
 }

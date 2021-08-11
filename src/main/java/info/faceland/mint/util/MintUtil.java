@@ -16,19 +16,24 @@
  */
 package info.faceland.mint.util;
 
+import com.tealcube.minecraft.bukkit.facecore.utilities.AdvancedActionBarUtil;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.StringUtils;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.math.NumberUtils;
 import com.tealcube.minecraft.bukkit.shade.google.common.base.CharMatcher;
+import info.faceland.mint.pojo.RecentPickupEarnings;
+import info.faceland.mint.tasks.PickupTask;
+import io.pixeloutlaw.minecraft.spigot.garbage.StringExtensionsKt;
 import io.pixeloutlaw.minecraft.spigot.hilt.ItemStackExtensionsKt;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -39,7 +44,11 @@ import org.nunnerycode.mint.MintPlugin;
 public class MintUtil {
 
   public static Map<UUID, Double> protectedCashCache = new HashMap<>();
+  public static Map<Player, RecentPickupEarnings> recentEarnings = new WeakHashMap<>();
   public static String CASH_STRING = ChatColor.GOLD + "REWARD!";
+
+  private static final String CARRIED_BITS = StringExtensionsKt.chatColorize("&2&lCarried Bits: &e&l{}");
+  private static final String PLUS_BITS = StringExtensionsKt.chatColorize("&e&l+{}");
 
   public static void setProtectedCash(Player player, double amount) {
     protectedCashCache.put(player.getUniqueId(), amount);
@@ -49,21 +58,65 @@ public class MintUtil {
     return protectedCashCache.getOrDefault(player.getUniqueId(), 0D);
   }
 
+  public static boolean doCashPickup(Player player, Item item) {
+    ItemStack itemStack = item.getItemStack();
+
+    if (itemStack.getType() != Material.GOLD_NUGGET) {
+      return false;
+    }
+    if (!MintUtil.CASH_STRING.equals(ItemStackExtensionsKt.getDisplayName(itemStack))) {
+      return false;
+    }
+
+    item.remove();
+    player.playSound(player.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1.0F, 1.3F);
+
+    String stripped = ChatColor.stripColor(itemStack.getLore().get(0));
+    String replaced = CharMatcher.forPredicate(Character::isLetter).removeFrom(stripped).trim();
+    int stacksize = itemStack.getAmount();
+
+    double amount = stacksize * NumberUtils.toDouble(replaced);
+    MintPlugin.getInstance().getEconomy().depositPlayer(player, amount);
+
+    if (!recentEarnings.containsKey(player)) {
+      recentEarnings.put(player, new RecentPickupEarnings(amount));
+    } else {
+      RecentPickupEarnings earnings = recentEarnings.get(player);
+      if (System.currentTimeMillis() > earnings.getTimestamp()) {
+        earnings.setAmount(amount);
+      } else {
+        earnings.setAmount(earnings.getAmount() + amount);
+      }
+      earnings.setTimestamp(System.currentTimeMillis() + 1250);
+    }
+
+    RecentPickupEarnings earnings = recentEarnings.get(player);
+    String carriedMessage = CARRIED_BITS.replace("{}",
+        MintPlugin.getInstance().getEconomy().format(MintPlugin.getInstance().getEconomy().getBalance(player)));
+    String plusMessage = PLUS_BITS.replace("{}", MintPlugin.getInstance().getEconomy().format(Math.floor(earnings.getAmount())));
+    AdvancedActionBarUtil.addMessage(player, "bits-total", carriedMessage, 70, 10);
+    AdvancedActionBarUtil.addMessage(player, "bits-plus", plusMessage, 40, 9);
+
+    return true;
+  }
+
   public static Item spawnCashDrop(Location location, double amount, float velocity) {
     ItemStack item = new ItemStack(Material.GOLD_NUGGET);
     ItemStackExtensionsKt.setDisplayName(item, CASH_STRING);
-    ItemStackExtensionsKt.setLore(item, Collections.singletonList(Double.toString(amount)));
+    item.setLore(Collections.singletonList(Double.toString(amount)));
+    Item droppedItem;
     if (velocity > 0) {
-      Item droppedItem = location.getWorld().dropItem(location, item);
+      droppedItem = location.getWorld().dropItem(location, item);
       droppedItem.setVelocity(new Vector(
           Math.random() * velocity * (Math.random() > 0.5 ? 1 : -1),
           0.1 + Math.random() * velocity,
           Math.random() * velocity * (Math.random() > 0.5 ? 1 : -1))
       );
-      return droppedItem;
     } else {
-      return location.getWorld().dropItemNaturally(location, item);
+      droppedItem = location.getWorld().dropItemNaturally(location, item);
     }
+    new PickupTask(droppedItem);
+    return droppedItem;
   }
 
   public static void applyDropProtection(Item drop, UUID owner, long duration) {

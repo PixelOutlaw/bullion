@@ -99,18 +99,22 @@ public class DeathListener implements Listener {
 
     reward = Math.max(1, gde.getAmount());
 
-    double bombChance = plugin.getSettings().getDouble("config.bit-bomb-chance", 0.002);
+    double bombChance = plugin.getSettings().getDouble("config.bit-bomb.chance", 0.002);
     if (event.getEntity().getKiller().hasPotionEffect(PotionEffectType.LUCK)) {
-      bombChance = plugin.getSettings().getDouble("config.lucky-bit-bomb-chance", 0.004);
+      bombChance = plugin.getSettings().getDouble("config.bit-bomb.lucky-chance", 0.004);
     }
 
     if (ThreadLocalRandom.current().nextDouble() <= bombChance) {
-      int numberOfDrops = ThreadLocalRandom.current().nextInt(12, 30);
+      float velocity = (float) plugin.getSettings().getDouble("config.bit-bomb.velocity", 1);
+      int minDrops = plugin.getSettings().getInt("config.bit-bomb.min-drops", 12);
+      int maxDrops = plugin.getSettings().getInt("config.bit-bomb.max-drops", 30);
+
+      int numberOfDrops = ThreadLocalRandom.current().nextInt(minDrops, maxDrops + 1);
       double bombTotal = 0;
       while (numberOfDrops > 0) {
         double newReward = reward * (4 + Math.random());
         bombTotal += newReward;
-        Item item = MintUtil.spawnCashDrop(event.getEntity().getLocation(), newReward, 2);
+        Item item = MintUtil.spawnCashDrop(event.getEntity().getLocation(), newReward, velocity);
         MintUtil.applyDropProtection(item, event.getEntity().getKiller().getUniqueId(), 400);
         numberOfDrops--;
       }
