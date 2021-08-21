@@ -20,10 +20,12 @@ package info.faceland.mint;
 
 import static com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils.sendMessage;
 
+import com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils;
 import com.tealcube.minecraft.bukkit.shade.acf.BaseCommand;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandAlias;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandCompletion;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandPermission;
+import com.tealcube.minecraft.bukkit.shade.acf.annotation.Default;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.Subcommand;
 import com.tealcube.minecraft.bukkit.shade.acf.bukkit.contexts.OnlinePlayer;
 import info.faceland.mint.util.MintUtil;
@@ -79,23 +81,73 @@ public class MintCommand extends BaseCommand {
 
     @Subcommand("balance")
     @CommandPermission("mint.bank.balance")
-    public void bankBalance(OnlinePlayer player) {
-      Player target = player.getPlayer();
-      EconomyResponse response = plugin.getEconomy().bankBalance(target.getUniqueId().toString());
+    public void bankBalance(Player player) {
+      EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
       if (!response.transactionSuccess()) {
-        target.sendMessage(
+        player.sendMessage(
             StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-balance-failure", "")));
         return;
       }
-      target.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+      player.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
           "language.bank-balance", "").replaceAll("%currency%", plugin.getEconomy().format(response.balance))));
     }
 
     @Subcommand("deposit")
     @CommandCompletion("@range:1-100")
     @CommandPermission("mint.bank.deposit")
-    public void bankDeposit(OnlinePlayer p, double amount) {
-      Player player = p.getPlayer();
+    public void bankDeposit(Player player, double amount) {
+      EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
+      if (!response.transactionSuccess()) {
+        response = plugin.getEconomy()
+            .createBank(player.getUniqueId().toString(), player.getUniqueId().toString());
+        if (response.transactionSuccess()) {
+          sendMessage(player, plugin.getSettings().getString(
+              "language.bank-create-success", "").replaceAll("%player%", player.getName()));
+          return;
+        }
+      }
+      if (amount < 0) {
+        if (plugin.getEconomy()
+            .bankDeposit(player.getUniqueId().toString(), plugin.getEconomy().getBalance(
+                player.getUniqueId().toString())).transactionSuccess()) {
+          if (plugin.getEconomy()
+              .withdrawPlayer(player.getUniqueId().toString(), plugin.getEconomy().getBalance(
+                  player.getUniqueId().toString())).transactionSuccess()) {
+            sendMessage(player, plugin.getSettings().getString(
+                "language.bank-deposit-success", "").replaceAll("%currency%", "EVERYTHING"));
+            sendMessage(player, plugin.getSettings().getString(
+                "language.bank-balance", "").replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                .bankBalance(player.getUniqueId().toString()).balance)));
+            return;
+          }
+        }
+        sendMessage(player, plugin.getSettings().getString("language.bank-deposit-failure", ""));
+        return;
+      }
+      if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-deposit-failure", ""));
+        return;
+      }
+      if (plugin.getEconomy().bankDeposit(player.getUniqueId().toString(), amount)
+          .transactionSuccess()) {
+        if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
+            .transactionSuccess()) {
+          sendMessage(player, plugin.getSettings().getString(
+              "language.bank-deposit-success", "").replaceAll("%currency%", plugin.getEconomy().format(amount)));
+          sendMessage(player, plugin.getSettings().getString("language.bank-balance", "")
+              .replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                  .bankBalance(player.getUniqueId().toString()).balance)));
+          return;
+        }
+      }
+      sendMessage(player, plugin.getSettings().getString("language.bank-deposit-failure", ""));
+    }
+
+    @Subcommand("force-deposit")
+    @CommandCompletion("@players @range:1-100")
+    @CommandPermission("mint.bank.deposit")
+    public void bankDeposit(CommandSender sender, OnlinePlayer target, double amount) {
+      Player player = target.getPlayer();
       EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
       if (!response.transactionSuccess()) {
         response = plugin.getEconomy()
@@ -146,7 +198,7 @@ public class MintCommand extends BaseCommand {
     @Subcommand("withdraw")
     @CommandCompletion("@range:1-100")
     @CommandPermission("mint.bank.withdraw")
-    public void bankWithdraw(OnlinePlayer p, double amount) {
+    public void bankWithdraw(Player p, double amount) {
       Player player = p.getPlayer();
       EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
       if (!response.transactionSuccess()) {
@@ -188,7 +240,54 @@ public class MintCommand extends BaseCommand {
       }
       sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
     }
+
+    @Subcommand("force-withdraw")
+    @CommandCompletion("@players @range:1-100")
+    @CommandPermission("mint.bank.withdraw")
+    public void bankWithdraw(CommandSender sender, OnlinePlayer target, double amount) {
+      Player player = target.getPlayer();
+      EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
+      if (!response.transactionSuccess()) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-no-account", ""));
+        return;
+      }
+      if (amount < 0) {
+        if (plugin.getEconomy()
+            .depositPlayer(player.getUniqueId().toString(), plugin.getEconomy().bankBalance(
+                player.getUniqueId().toString()).balance).transactionSuccess()) {
+          if (plugin.getEconomy()
+              .bankWithdraw(player.getUniqueId().toString(), plugin.getEconomy().bankBalance(
+                  player.getUniqueId().toString()).balance).transactionSuccess()) {
+            sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-success", "")
+                .replaceAll("%currency%", "EVERYTHING"));
+            sendMessage(player, plugin.getSettings().getString("language.bank-balance", "")
+                .replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                    .bankBalance(player.getUniqueId().toString()).balance)));
+            return;
+          }
+        }
+        sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
+        return;
+      }
+      if (!plugin.getEconomy().bankHas(player.getUniqueId().toString(), amount)
+          .transactionSuccess()) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
+        return;
+      }
+      if (plugin.getEconomy().bankWithdraw(player.getUniqueId().toString(), amount)
+          .transactionSuccess() && plugin
+          .getEconomy().depositPlayer(player.getUniqueId().toString(), amount).transactionSuccess()) {
+        sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-success", "")
+            .replaceAll("%currency%", plugin.getEconomy().format(amount)));
+        sendMessage(player, plugin.getSettings().getString("language.bank-balance", "")
+            .replaceAll("%currency%", plugin.getEconomy().format(plugin.getEconomy()
+                .bankBalance(player.getUniqueId().toString()).balance)));
+        return;
+      }
+      sendMessage(player, plugin.getSettings().getString("language.bank-withdraw-failure", ""));
+    }
   }
+
 
   @Subcommand("pay")
   @CommandCompletion("@range:1-100")
