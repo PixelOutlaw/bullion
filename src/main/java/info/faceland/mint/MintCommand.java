@@ -288,71 +288,7 @@ public class MintCommand extends BaseCommand {
     }
   }
 
-
-  @Subcommand("pay")
-  @CommandCompletion("@range:1-100")
-  @CommandPermission("mint.pay")
-  public void payCommand(OnlinePlayer p, OnlinePlayer t, double amount) {
-    Player player = p.getPlayer();
-    Player target = t.getPlayer();
-    if (amount < 1D) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-negative-money"));
-      return;
-    }
-    if (!player.getLocation().getWorld().equals(target.getLocation().getWorld()) ||
-        player.getLocation().distanceSquared(target.getLocation()) > plugin.getSettings()
-            .getDouble("config.pay-distance-max", 25)) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-range", ""));
-      return;
-    }
-    if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
-      return;
-    }
-    if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
-        .transactionSuccess() &&
-        plugin.getEconomy().depositPlayer(target.getUniqueId().toString(), amount)
-            .transactionSuccess()) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-success", "")
-          .replaceAll("%player%", target.getDisplayName())
-          .replaceAll("%currency%", plugin.getEconomy().format(Math.abs(amount))));
-      sendMessage(player, plugin.getSettings().getString("language.gain-money", "")
-          .replaceAll("%amount%", String.valueOf(amount))
-          .replaceAll("%money%", amount == 1D ? plugin.getEconomy().currencyNameSingular()
-              : plugin.getEconomy().currencyNamePlural())
-          .replaceAll("%currency%", plugin.getEconomy().format(amount)));
-      return;
-    }
-    sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
-  }
-
-  @Subcommand("epay")
-  @CommandCompletion("@range:1-100")
-  @CommandPermission("mint.epay")
-  public void ePayCommand(OnlinePlayer p, OnlinePlayer t, double amount) {
-    Player player = p.getPlayer();
-    Player target = t.getPlayer();
-    if (amount < 1D) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-negative-money"));
-      return;
-    }
-    if (!plugin.getEconomy().has(player.getUniqueId().toString(), amount)) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
-      return;
-    }
-    if (plugin.getEconomy().withdrawPlayer(player.getUniqueId().toString(), amount)
-        .transactionSuccess() &&
-        plugin.getEconomy().depositPlayer(target.getUniqueId().toString(), amount)
-            .transactionSuccess()) {
-      sendMessage(player, plugin.getSettings().getString("language.pay-success", "")
-          .replaceAll("%player%", target.getDisplayName())
-          .replaceAll("%currency%", plugin.getEconomy().format(Math.abs(amount))));
-      return;
-    }
-    sendMessage(player, plugin.getSettings().getString("language.pay-failure", ""));
-  }
-
-  @Subcommand("sub|give")
+  @Subcommand("add|give")
   @CommandCompletion("@players @range:1-100")
   @CommandPermission("mint.add")
   public void addSubcommand(CommandSender sender, OnlinePlayer p, double amount) {
