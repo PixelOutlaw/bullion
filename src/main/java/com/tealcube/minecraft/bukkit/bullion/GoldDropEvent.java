@@ -35,7 +35,6 @@ public class GoldDropEvent extends MintEvent implements Cancellable {
   private boolean cancelled;
 
   public GoldDropEvent(Player killer, LivingEntity livingEntity, double amount) {
-    super(killer != null ? killer.getUniqueId().toString() : "");
     this.killer = killer;
     this.livingEntity = livingEntity;
     this.amount = amount;

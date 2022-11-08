@@ -1,6 +1,6 @@
-/**
+/*
  * The MIT License
- * Copyright (c) 2015 Teal Cube Games
+ * Copyright © 2015 Pixel Outlaw
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,22 +20,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package info.faceland.mint;
+package com.tealcube.minecraft.bukkit.bullion;
 
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
+import info.faceland.mint.MintEvent;
+import java.util.UUID;
+import lombok.Getter;
 
-public class MintEvent extends Event {
+public class MoneyChangeEvent extends MintEvent {
 
-    private static final HandlerList HANDLER_LIST = new HandlerList();
+  @Getter
+  private final UUID player;
+  @Getter
+  private final double oldValue;
+  @Getter
+  private final double newValue;
 
-    public static HandlerList getHandlerList() {
-        return HANDLER_LIST;
-    }
-
-    @Override
-    public HandlerList getHandlers() {
-        return HANDLER_LIST;
-    }
+  public MoneyChangeEvent(UUID player, double oldValue, double newValue) {
+    this.oldValue = oldValue;
+    this.newValue = newValue;
+    this.player = player;
+  }
 
 }

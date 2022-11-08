@@ -16,17 +16,17 @@
  */
 package info.faceland.mint.util;
 
-import com.tealcube.minecraft.bukkit.facecore.utilities.AdvancedActionBarUtil;
+import com.tealcube.minecraft.bukkit.facecore.utilities.FaceColor;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.StringUtils;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.math.NumberUtils;
 import com.tealcube.minecraft.bukkit.shade.google.common.base.CharMatcher;
 import info.faceland.mint.pojo.RecentPickupEarnings;
 import info.faceland.mint.tasks.PickupTask;
-import io.pixeloutlaw.minecraft.spigot.garbage.StringExtensionsKt;
 import io.pixeloutlaw.minecraft.spigot.hilt.ItemStackExtensionsKt;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import org.bukkit.Bukkit;
@@ -46,9 +46,7 @@ public class MintUtil {
   public static Map<UUID, Double> protectedCashCache = new HashMap<>();
   public static Map<Player, RecentPickupEarnings> recentEarnings = new WeakHashMap<>();
   public static String CASH_STRING = ChatColor.GOLD + "REWARD!";
-
-  private static final String CARRIED_BITS = StringExtensionsKt.chatColorize("&2&lCarried Bits: &e&l{}");
-  private static final String PLUS_BITS = StringExtensionsKt.chatColorize("&e&l+{}");
+  private static final Random random = new Random();
 
   public static void setProtectedCash(Player player, double amount) {
     protectedCashCache.put(player.getUniqueId(), amount);
@@ -90,13 +88,6 @@ public class MintUtil {
       earnings.setTimestamp(System.currentTimeMillis() + 1250);
     }
 
-    RecentPickupEarnings earnings = recentEarnings.get(player);
-    String carriedMessage = CARRIED_BITS.replace("{}",
-        MintPlugin.getInstance().getEconomy().format(MintPlugin.getInstance().getEconomy().getBalance(player)));
-    String plusMessage = PLUS_BITS.replace("{}", MintPlugin.getInstance().getEconomy().format(Math.floor(earnings.getAmount())));
-    AdvancedActionBarUtil.addMessage(player, "bits-total", carriedMessage, 70, 10);
-    AdvancedActionBarUtil.addMessage(player, "bits-plus", plusMessage, 40, 9);
-
     return true;
   }
 
@@ -115,8 +106,37 @@ public class MintUtil {
     } else {
       droppedItem = location.getWorld().dropItemNaturally(location, item);
     }
+    applyNameplate(droppedItem, amount);
     new PickupTask(droppedItem);
     return droppedItem;
+  }
+
+  private static void applyNameplate(Item item, double amount) {
+    ItemStack nuggetStack = item.getItemStack();
+    ItemStackExtensionsKt.setDisplayName(nuggetStack, MintUtil.CASH_STRING);
+
+    int amountId = (int) Math.floor(amount);
+    if (amountId < 2) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 1000000 + random.nextInt(999999));
+    } else if (amountId == 2) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 2000000 + random.nextInt(999999));
+    } else if (amountId == 3) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 3000000 + random.nextInt(999999));
+    } else if (amountId < 12) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 4000000 + random.nextInt(999999));
+    } else if (amountId < 80) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 5000000 + random.nextInt(999999));
+    } else if (amountId < 250) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 6000000 + random.nextInt(999999));
+    } else if (amountId < 999) {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 7000000 + random.nextInt(999999));
+    } else {
+      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 8000000 + random.nextInt(999999));
+    }
+
+    item.setItemStack(nuggetStack);
+    item.setCustomName(FaceColor.YELLOW.s() + amountId + ChatColor.YELLOW + "◎");
+    item.setCustomNameVisible(true);
   }
 
   public static void applyDropProtection(Item drop, UUID owner, long duration) {

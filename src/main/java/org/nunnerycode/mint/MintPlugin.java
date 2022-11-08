@@ -24,7 +24,6 @@ import com.tealcube.minecraft.bukkit.shade.acf.PaperCommandManager;
 import info.faceland.mint.MintCommand;
 import info.faceland.mint.MintEconomy;
 import info.faceland.mint.listeners.DeathListener;
-import info.faceland.mint.listeners.ItemSpawnListener;
 import info.faceland.mint.listeners.MintListener;
 import info.faceland.mint.managers.MintManager;
 import info.faceland.mint.util.MintUtil;
@@ -139,11 +138,9 @@ public class MintPlugin extends FacePlugin {
     }
 
     MintListener listener = new MintListener(this);
-    ItemSpawnListener itemSpawnListener = new ItemSpawnListener(this);
     DeathListener deathListener = new DeathListener(this);
 
     Bukkit.getPluginManager().registerEvents(listener, this);
-    Bukkit.getPluginManager().registerEvents(itemSpawnListener, this);
     Bukkit.getPluginManager().registerEvents(deathListener, this);
 
     PaperCommandManager commandManager = new PaperCommandManager(this);

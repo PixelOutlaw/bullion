@@ -34,7 +34,6 @@ public class PlayerDeathDropEvent extends MintEvent implements Cancellable {
   private boolean cancelled;
 
   public PlayerDeathDropEvent(Player victim, double amountProtected) {
-    super(victim != null ? victim.getUniqueId().toString() : "");
     this.victim = victim;
     this.amountProtected = amountProtected;
   }

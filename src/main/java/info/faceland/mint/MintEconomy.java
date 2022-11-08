@@ -1,21 +1,24 @@
 /**
  * The MIT License Copyright (c) 2015 Teal Cube Games
  * <p>
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  * <p>
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
- * Software.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  * <p>
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
- * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 package info.faceland.mint;
 
+import com.tealcube.minecraft.bukkit.bullion.MoneyChangeEvent;
 import io.pixeloutlaw.minecraft.spigot.garbage.StringExtensionsKt;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
@@ -36,8 +39,10 @@ public class MintEconomy implements Economy {
 
   public MintEconomy(MintPlugin plugin) {
     this.plugin = plugin;
-    currencyPlural = StringExtensionsKt.chatColorize(plugin.getSettings().getString("config.currency-plural", "Bits"));
-    currencySingular = StringExtensionsKt.chatColorize(plugin.getSettings().getString("config.currency-singular", "Bit"));
+    currencyPlural = StringExtensionsKt.chatColorize(
+        plugin.getSettings().getString("config.currency-plural", "Bits"));
+    currencySingular = StringExtensionsKt.chatColorize(
+        plugin.getSettings().getString("config.currency-singular", "Bit"));
   }
 
   @Override
@@ -172,9 +177,12 @@ public class MintEconomy implements Economy {
     if (!has(s, v)) {
       return new EconomyResponse(v, balance, EconomyResponse.ResponseType.FAILURE, null);
     }
-    plugin.getManager().setPlayerBalance(uuid, balance - Math.abs(v));
-    Bukkit.getPluginManager().callEvent(new MintEvent(s));
-    return new EconomyResponse(v, balance - Math.abs(v), EconomyResponse.ResponseType.SUCCESS, null);
+    double newBalance = balance - Math.abs(v);
+    plugin.getManager().setPlayerBalance(uuid, newBalance);
+    EconomyResponse response =
+        new EconomyResponse(v, newBalance, EconomyResponse.ResponseType.SUCCESS, null);
+    Bukkit.getPluginManager().callEvent(new MoneyChangeEvent(uuid, balance, newBalance));
+    return response;
   }
 
   @Override
@@ -205,9 +213,12 @@ public class MintEconomy implements Economy {
       uuid = Bukkit.getOfflinePlayer(s).getUniqueId();
     }
     double balance = plugin.getManager().getPlayerBalance(uuid);
-    plugin.getManager().setPlayerBalance(uuid, balance + Math.abs(v));
-    Bukkit.getPluginManager().callEvent(new MintEvent(s));
-    return new EconomyResponse(v, balance + Math.abs(v), EconomyResponse.ResponseType.SUCCESS, null);
+    double newBalance = balance + Math.abs(v);
+    plugin.getManager().setPlayerBalance(uuid, newBalance);
+    EconomyResponse response = new EconomyResponse(v, balance + Math.abs(v),
+        EconomyResponse.ResponseType.SUCCESS, null);
+    Bukkit.getPluginManager().callEvent(new MoneyChangeEvent(uuid, balance, newBalance));
+    return response;
   }
 
   @Override
@@ -269,7 +280,8 @@ public class MintEconomy implements Economy {
     EconomyResponse response = bankBalance(s);
     if (response.transactionSuccess()) {
       if (response.balance >= v) {
-        return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.SUCCESS, null);
+        return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.SUCCESS,
+            null);
       }
       return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.FAILURE, null);
     }
@@ -288,7 +300,8 @@ public class MintEconomy implements Economy {
     double balance = plugin.getManager().getBankBalance(uuid);
     if (response.transactionSuccess()) {
       plugin.getManager().setBankBalance(uuid, balance - Math.abs(v));
-      return new EconomyResponse(v, balance - Math.abs(v), EconomyResponse.ResponseType.SUCCESS, null);
+      return new EconomyResponse(v, balance - Math.abs(v), EconomyResponse.ResponseType.SUCCESS,
+          null);
     }
     return new EconomyResponse(0D, 0D, EconomyResponse.ResponseType.FAILURE, null);
   }
@@ -305,7 +318,8 @@ public class MintEconomy implements Economy {
     double balance = plugin.getManager().getBankBalance(uuid);
     if (response.transactionSuccess()) {
       plugin.getManager().setBankBalance(uuid, balance + Math.abs(v));
-      return new EconomyResponse(v, balance + Math.abs(v), EconomyResponse.ResponseType.SUCCESS, null);
+      return new EconomyResponse(v, balance + Math.abs(v), EconomyResponse.ResponseType.SUCCESS,
+          null);
     }
     return new EconomyResponse(0D, 0D, EconomyResponse.ResponseType.FAILURE, null);
   }
@@ -348,7 +362,7 @@ public class MintEconomy implements Economy {
       uuid = Bukkit.getOfflinePlayer(s).getUniqueId();
     }
     plugin.getManager().setPlayerBalance(uuid, 0D);
-    Bukkit.getPluginManager().callEvent(new MintEvent(s));
+    Bukkit.getPluginManager().callEvent(new MoneyChangeEvent(uuid, 0, 0));
     return true;
   }
 
@@ -384,7 +398,7 @@ public class MintEconomy implements Economy {
     }
     double d = plugin.getManager().getPlayerBalance(uuid);
     plugin.getManager().setPlayerBalance(uuid, v);
-    Bukkit.getPluginManager().callEvent(new MintEvent(s));
+    Bukkit.getPluginManager().callEvent(new MoneyChangeEvent(uuid, d, v));
     return new EconomyResponse(d - v, v, EconomyResponse.ResponseType.SUCCESS, null);
   }
 

@@ -21,10 +21,9 @@ import static org.nunnerycode.mint.MintPlugin.INT_FORMAT;
 import com.tealcube.minecraft.bukkit.bullion.GoldDropEvent;
 import com.tealcube.minecraft.bukkit.bullion.PlayerDeathDropEvent;
 import com.tealcube.minecraft.bukkit.facecore.utilities.FireworkUtil;
-import com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils;
+import com.tealcube.minecraft.bukkit.facecore.utilities.PaletteUtil;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.StringUtils;
 import info.faceland.mint.util.MintUtil;
-import io.pixeloutlaw.minecraft.spigot.garbage.StringExtensionsKt;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
@@ -47,11 +46,13 @@ public class DeathListener implements Listener {
   private final MintPlugin plugin;
   private final List<String> noLossWorlds;
   private final double doubleDropChance;
+  private final String bitBombBroadcast;
 
   public DeathListener(MintPlugin plugin) {
     this.plugin = plugin;
     noLossWorlds = plugin.getSettings().getStringList("config.no-loss-worlds");
     doubleDropChance = plugin.getSettings().getDouble("config.double-drop-chance", 0.05);
+    bitBombBroadcast = PaletteUtil.color(plugin.getSettings().getString("language.bit-bomb-message"));
   }
 
   @EventHandler(priority = EventPriority.HIGHEST)
@@ -118,10 +119,10 @@ public class DeathListener implements Listener {
         MintUtil.applyDropProtection(item, event.getEntity().getKiller().getUniqueId(), 400);
         numberOfDrops--;
       }
-      String broadcastString = plugin.getSettings().getString("language.bit-bomb-message");
-      broadcastString = broadcastString.replace("%player%", event.getEntity().getKiller().getName())
+
+      String broadcastString = bitBombBroadcast.replace("%player%", event.getEntity().getKiller().getName())
           .replace("%value%", INT_FORMAT.format(bombTotal));
-      Bukkit.broadcastMessage(StringExtensionsKt.chatColorize(broadcastString));
+      Bukkit.broadcastMessage(broadcastString);
       FireworkUtil.spawnFirework(event.getEntity().getLocation(), Type.STAR, Color.YELLOW, Color.ORANGE, false, true);
     } else {
       Item item = MintUtil.spawnCashDrop(event.getEntity().getLocation(), reward, 0);
@@ -155,9 +156,9 @@ public class DeathListener implements Listener {
       plugin.getEconomy().setBalance(event.getEntity(), (int) e.getAmountProtected());
       Item item = MintUtil.spawnCashDrop(event.getEntity().getLocation(), dropAmount, 0);
       MintUtil.applyDropProtection(item, event.getEntity().getUniqueId(), 2400);
-      MessageUtils.sendMessage(event.getEntity(),
-          "&e&oYou dropped some Bits! You can pick them back up again, if you get there quickly enough! :O");
-      MessageUtils.sendMessage(event.getEntity(), "&c  -" + INT_FORMAT.format(dropAmount) + " Bits!");
+      PaletteUtil.sendMessage(event.getEntity(),
+          "|yellow||i|You dropped some Bits! You can pick them back up again, if you get there quickly enough! :O");
+      PaletteUtil.sendMessage(event.getEntity(), "|red|  -" + INT_FORMAT.format(dropAmount) + " Bits!");
     }
   }
 

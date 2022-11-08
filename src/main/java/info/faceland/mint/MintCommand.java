@@ -18,20 +18,20 @@
  */
 package info.faceland.mint;
 
-import static com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils.sendMessage;
+import static com.tealcube.minecraft.bukkit.facecore.utilities.PaletteUtil.sendMessage;
 
-import com.tealcube.minecraft.bukkit.facecore.utilities.MessageUtils;
+import com.tealcube.minecraft.bukkit.facecore.utilities.PaletteUtil;
 import com.tealcube.minecraft.bukkit.shade.acf.BaseCommand;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandAlias;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandCompletion;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.CommandPermission;
-import com.tealcube.minecraft.bukkit.shade.acf.annotation.Default;
 import com.tealcube.minecraft.bukkit.shade.acf.annotation.Subcommand;
 import com.tealcube.minecraft.bukkit.shade.acf.bukkit.contexts.OnlinePlayer;
 import info.faceland.mint.util.MintUtil;
-import io.pixeloutlaw.minecraft.spigot.garbage.StringExtensionsKt;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.nunnerycode.mint.MintPlugin;
@@ -50,7 +50,7 @@ public class MintCommand extends BaseCommand {
   public void reload(CommandSender commandSender) {
     plugin.disable();
     plugin.enable();
-    commandSender.sendMessage(StringExtensionsKt.chatColorize("&aMINT RELOADED!"));
+    commandSender.sendMessage(PaletteUtil.color("&aMINT RELOADED!"));
   }
 
   @Subcommand("bank")
@@ -63,20 +63,20 @@ public class MintCommand extends BaseCommand {
       EconomyResponse response = plugin.getEconomy().bankBalance(target.getUniqueId().toString());
       if (response.transactionSuccess()) {
         commandSender.sendMessage(
-            StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-create-failure2", "")));
+            PaletteUtil.color(plugin.getSettings().getString("language.bank-create-failure2", "")));
         return;
       }
       response = plugin.getEconomy()
           .createBank(target.getUniqueId().toString(), target.getUniqueId().toString());
       if (response.transactionSuccess()) {
-        commandSender.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+        commandSender.sendMessage(PaletteUtil.color(plugin.getSettings().getString(
             "language.bank-create-success", "").replaceAll("%player%", target.getDisplayName())));
-        target.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+        target.sendMessage(PaletteUtil.color(plugin.getSettings().getString(
             "language.bank-create-receiver", "")));
         return;
       }
       commandSender.sendMessage(
-          StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-create-failure", "")));
+          PaletteUtil.color(plugin.getSettings().getString("language.bank-create-failure", "")));
     }
 
     @Subcommand("balance")
@@ -85,10 +85,10 @@ public class MintCommand extends BaseCommand {
       EconomyResponse response = plugin.getEconomy().bankBalance(player.getUniqueId().toString());
       if (!response.transactionSuccess()) {
         player.sendMessage(
-            StringExtensionsKt.chatColorize(plugin.getSettings().getString("language.bank-balance-failure", "")));
+            PaletteUtil.color(plugin.getSettings().getString("language.bank-balance-failure", "")));
         return;
       }
-      player.sendMessage(StringExtensionsKt.chatColorize(plugin.getSettings().getString(
+      player.sendMessage(PaletteUtil.color(plugin.getSettings().getString(
           "language.bank-balance", "").replaceAll("%currency%", plugin.getEconomy().format(response.balance))));
     }
 
@@ -321,15 +321,4 @@ public class MintCommand extends BaseCommand {
     sendMessage(sender, plugin.getSettings().getString("language.spawn-success", "")
         .replaceAll("%currency%", plugin.getEconomy().format(Math.abs(amount))));
   }
-
-  @Subcommand("balance")
-  @CommandCompletion("@players @range:1-100")
-  @CommandPermission("mint.spawn")
-  public void balanceSubcommand(CommandSender sender, OnlinePlayer p) {
-    Player target = p.getPlayer();
-    sendMessage(sender, "&f%player% &ahas &f%currency%",
-        new String[][]{{"%player%", target.getDisplayName()},
-            {"%currency%", plugin.getEconomy().format(plugin.getEconomy().getBalance(target))}});
-  }
-
 }
