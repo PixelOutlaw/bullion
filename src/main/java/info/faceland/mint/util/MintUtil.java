@@ -18,6 +18,7 @@ package info.faceland.mint.util;
 
 import com.tealcube.minecraft.bukkit.facecore.FacecorePlugin;
 import com.tealcube.minecraft.bukkit.facecore.utilities.FaceColor;
+import com.tealcube.minecraft.bukkit.facecore.utilities.ItemUtils;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.StringUtils;
 import com.tealcube.minecraft.bukkit.shade.apache.commons.lang3.math.NumberUtils;
 import com.tealcube.minecraft.bukkit.shade.google.common.base.CharMatcher;
@@ -120,21 +121,21 @@ public class MintUtil {
 
     int amountId = (int) Math.floor(amount);
     if (amountId < 2) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 1000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/1");
     } else if (amountId == 2) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 2000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/2");
     } else if (amountId == 3) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 3000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/3");
     } else if (amountId < 12) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 4000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/4");
     } else if (amountId < 80) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 5000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/5");
     } else if (amountId < 250) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 6000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/6");
     } else if (amountId < 999) {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 7000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/7");
     } else {
-      ItemStackExtensionsKt.setCustomModelData(nuggetStack, 8000000 + random.nextInt(999999));
+      ItemUtils.setItemModel(nuggetStack, "decomodels:bits/8");
     }
 
     item.setItemStack(nuggetStack);
