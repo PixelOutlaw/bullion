@@ -179,6 +179,13 @@ public class MintEconomy implements Economy {
       return new EconomyResponse(v, balance, EconomyResponse.ResponseType.FAILURE, null);
     }
     double newBalance = balance - Math.abs(v);
+    if (newBalance < 0 && newBalance > -1) {
+      newBalance = 0;
+    } else {
+      if (newBalance % 1 > 0.999) {
+        newBalance = (int) Math.ceil(newBalance);
+      }
+    }
     plugin.getManager().setPlayerBalance(uuid, newBalance);
     EconomyResponse response =
         new EconomyResponse(v, newBalance, EconomyResponse.ResponseType.SUCCESS, null);
@@ -215,6 +222,9 @@ public class MintEconomy implements Economy {
     }
     double balance = plugin.getManager().getPlayerBalance(uuid);
     double newBalance = balance + Math.abs(v);
+    if (newBalance % 1 > 0.99) {
+      newBalance = (int) Math.ceil(newBalance);
+    }
     plugin.getManager().setPlayerBalance(uuid, newBalance);
     EconomyResponse response = new EconomyResponse(v, balance + Math.abs(v),
         EconomyResponse.ResponseType.SUCCESS, null);
@@ -281,12 +291,19 @@ public class MintEconomy implements Economy {
     EconomyResponse response = bankBalance(s);
     if (response.transactionSuccess()) {
       if (response.balance >= v) {
-        return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.SUCCESS,
-            null);
+        return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.SUCCESS, null);
       }
       return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.FAILURE, null);
     }
     return new EconomyResponse(0D, response.balance, EconomyResponse.ResponseType.FAILURE, null);
+  }
+
+  public boolean verifiedTransferDeposit(String s, double v) {
+    return withdrawPlayer(s, v).transactionSuccess() && bankDeposit(s, v).transactionSuccess();
+  }
+
+  public boolean verifiedTransferWithdraw(String s, double v) {
+    return bankWithdraw(s, v).transactionSuccess() && depositPlayer(s, v).transactionSuccess();
   }
 
   @Override
@@ -301,8 +318,7 @@ public class MintEconomy implements Economy {
     double balance = plugin.getManager().getBankBalance(uuid);
     if (response.transactionSuccess()) {
       plugin.getManager().setBankBalance(uuid, balance - Math.abs(v));
-      return new EconomyResponse(v, balance - Math.abs(v), EconomyResponse.ResponseType.SUCCESS,
-          null);
+      return new EconomyResponse(v, balance - Math.abs(v), EconomyResponse.ResponseType.SUCCESS, null);
     }
     return new EconomyResponse(0D, 0D, EconomyResponse.ResponseType.FAILURE, null);
   }
